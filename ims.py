@@ -67,8 +67,9 @@ def get_image_list(source_dir: Path) -> list:
     return images
 
 
-def app(source_dir: str, albums_dir: str, album_list: list):
+def app(source_dir: Path, albums_dir: Path, album_list: list):
     window = pyglet.window.Window(resizable=True, width=_resolution[0], height=_resolution[1])
+    window.set_minimum_size(MINIMUM_RESOLUTION[0], MINIMUM_RESOLUTION[1])
 
     images = get_image_list(Path(source_dir))
 
@@ -76,9 +77,6 @@ def app(source_dir: str, albums_dir: str, album_list: list):
     def on_resize(width: int, height: int) -> None:
         global _resolution
 
-        if width < MINIMUM_RESOLUTION[0] or height < MINIMUM_RESOLUTION[1]:
-            window.size = _resolution
-            return
         _resolution = (width, height)
         logging.info(f'Window size set to {_resolution[0]}x{_resolution[1]}')
 
