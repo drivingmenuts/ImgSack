@@ -9,8 +9,8 @@ logging.basicConfig(level='NOTSET', format='%(message)s', datefmt='[%X]', handle
 logger = logging.getLogger(__name__)
 
 window = pyglet.window.Window(resizable=False, width=640, height=480)
-window.set_caption('KeyTest')
-title = pyglet.text.Label('KeyTest',
+window.set_caption('MouseKeyTest')
+title = pyglet.text.Label('MouseKeyTest',
                           font_name='Fredericka the Great',
                           font_size=64,
                           anchor_x='center', anchor_y='bottom',
