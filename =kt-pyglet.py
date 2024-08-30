@@ -15,6 +15,9 @@ logger = logging.getLogger(__name__)
 window = pyglet.window.Window(resizable=False, width=640, height=480)
 window.set_caption('MouseKeyTest')
 
+keyboard = pyglet.window.key.KeyStateHandler()
+window.push_handlers(keyboard)
+
 logger.info(f'Adding font: {FONT_FILE}')
 pyglet.font.add_file(FONT_FILE)
 
@@ -71,6 +74,7 @@ def on_mouse_motion(x, y, dx, dy):
 
 @window.event
 def on_key_press(symbol, modifiers):
+    logger.info(pyglet.window.event)
     symbol_string = pyglet.window.key.symbol_string(symbol)
     modifiers_string = pyglet.window.key.modifiers_string(modifiers).replace('|', ' | ')
     last_key_label.text = f'{symbol_string} {modifiers_string}'
@@ -78,6 +82,10 @@ def on_key_press(symbol, modifiers):
         print('Quit')
         window.close()
         pyglet.app.exit()
+    if symbol == pyglet.window.key.F1:
+        title.visible = not title.visible
+    if symbol == pyglet.window.key.F2:
+        subtitle.visible = not subtitle.visible
 
 
 @window.event
