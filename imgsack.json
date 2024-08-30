@@ -1,6 +1,11 @@
 {
   "source_directory": "~/Pictures/Desktops/",
   "output_directory": "./Albums/",
+  "file_types": {
+    ".jpg",
+    ".jpeg",
+    ".gif"
+  },
   "albums": [
     {
       "key": "001",

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 PROGRAM_NAME = 'ImageSack'
 PROGRAM_VERSION = '0.0.1rNone'
-VERSION_INFO = f'{PROGRAM_NAME} v{PROGRAM_VERSION}'
+PYTHON_VERSION = '3.9'
+VERSION_INFO = f'{PROGRAM_NAME} v{PROGRAM_VERSION} - {PYTHON_VERSION}'
 
 import logging
 import os
@@ -30,21 +31,6 @@ class KeyingMode(Enum):
 key_mode = KeyingMode.K9
 
 
-class ImageList:
-    def __init__(self, source_directory: Path, filter_func=None):
-        self._source_directory = source_directory
-        self._filter_func = filter_func
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        next_file = next(os.scandir(self._source_directory))
-
-    def __len__(self):
-        return len(os.listdir(self._source_directory)).filter(self._filter_func)
-
-
 def get_album_list(source_dir: Path) -> list:
     directories = []
     for path in source_dir.iterdir():
@@ -65,6 +51,32 @@ def get_image_list(source_dir: Path) -> list:
 
     logging.debug(f'{len(images)} images found in {source_dir}')
     return images
+
+
+def is_album(p: Path) -> bool:
+    return os.path.isdir(p.expanduser())
+
+
+def skip_dots(p: Path) -> bool:
+    return str(p.expanduser()).split('/')[:-1][0] != '.'
+
+
+class DistributeItems():
+    def __init__(self, source_dir: Path, album_dir: Path, album_list: list = None, extensions: list = IMAGE_FORMATS):
+        self._source_dir = source_dir
+        self._album_dir = album_dir
+        self._extensions = extensions
+
+        self._album_list = album_list if album_list is not None else self._get_album_list()
+        logger.info(f'Album list is {self._album_list}')
+
+    def _get_album_list(self):
+        return [Path(d).expanduser() for d in Path(self._album_dir).expanduser().iterdir() if
+                is_album(d) and skip_dots(d)]
+
+    def _item_list(self):
+        return [Path(f).expanduser() for f in Path(self._source_dir).expanduser().iterdir() if
+                Path(f).expanduser().suffix in self._extensions]
 
 
 def app(source_dir: Path, albums_dir: Path, album_list: list):
@@ -128,7 +140,7 @@ if __name__ == '__main__':
         albums = get_album_list(album_directory)
 
         if args.keymode is not None:
-            logging.warning('Keymode - Not implemented yet')
+            logging.warning('Keymode - the goggles ... they do nothing!')
 
     app(source_directory, album_directory, albums)
     # See PyCharm help at https://www.jetbrains.com/help/pycharm/
