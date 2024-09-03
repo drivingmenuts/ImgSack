@@ -12,7 +12,7 @@ FONT_FILE = Path('./resources/FrederickatheGreat-Regular.ttf').expanduser().as_p
 logging.basicConfig(level='NOTSET', format='%(message)s', datefmt='[%X]', handlers=[RichHandler(rich_tracebacks=True)])
 logger = logging.getLogger(__name__)
 
-window = pyglet.window.Window(resizable=False, width=640, height=480)
+window = pyglet.window.Window(resizable=False, width=1024, height=768)
 window.set_caption('MouseKeyTest')
 
 keyboard = pyglet.window.key.KeyStateHandler()
@@ -85,9 +85,9 @@ def on_key_press(symbol, modifiers):
     symbol_string = pyglet.window.key.symbol_string(symbol)
     modifiers_string = pyglet.window.key.modifiers_string(modifiers).replace('|', ' | ')
     last_key_label.text = f'{symbol_string} {modifiers_string}'
-    logger.info(last_key_label.text)
+    logger.info(f'key_press: {symbol_string}({symbol}) {modifiers_string}')
     if symbol == pyglet.window.key.ESCAPE or symbol == pyglet.window.key.Q:
-        print('Quit')
+        logger.info("Quitting! Peace! I'm out ...")
         window.close()
         pyglet.app.exit()
     if symbol == pyglet.window.key.F1:
@@ -98,6 +98,9 @@ def on_key_press(symbol, modifiers):
 
 @window.event
 def on_key_release(symbol, modifiers):
+    symbol_string = pyglet.window.key.symbol_string(symbol)
+    modifiers_string = pyglet.window.key.modifiers_string(modifiers).replace('|', ' | ')
+    logger.info(f'key_release: {symbol_string} {modifiers_string}')
     last_key_label.text = ''
 
 

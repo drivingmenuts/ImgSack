@@ -1,7 +1,7 @@
 {
   "source_directory": "~/Pictures/Desktops/",
   "output_directory": "./Albums/",
-  "file_types": {
+  "extensions": {
     ".jpg",
     ".jpeg",
     ".gif"
