@@ -21,12 +21,14 @@ DEBUG = True
 
 
 class LabelSetWidget(QFrame):
-    def __init__(self, label: str, buttons: list = ('-' * 9), parent=None):
+    def __init__(self, label: str, buttons=None, parent=None):
         super().__init__(parent)
+        if buttons is None:
+            buttons = []
         layout = QVBoxLayout()
 
         title_label = QLabel(label)
-        title_label.setMinimumWidth(512)
+        title_label.setMinimumWidth(384)
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title_label)
 
@@ -35,7 +37,7 @@ class LabelSetWidget(QFrame):
 
         for button_text in buttons:
             button = QPushButton(button_text)
-            layout.addWidget(button)
+        layout.addWidget(button)
 
         if DEBUG:
             self.setFrameShape(self.Shape.Box)
