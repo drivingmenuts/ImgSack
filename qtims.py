@@ -1,21 +1,32 @@
 #!/usr/bin/env python3
 
+PROGRAM_NAME = 'ImageSack'
+PROGRAM_VERSION = '0.0.1rNone'
+PYTHON_VERSION = '3.9'
+VERSION_INFO = f'{PROGRAM_NAME} v{PROGRAM_VERSION} - {PYTHON_VERSION}'
+
+import qtkeymapper
+
+import argparse
+import logging
+import json
+import os
 import sys
 
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QAction, QIcon
-from PySide6.QtWidgets import (
-    QApplication,
-    QFrame,
-    QHBoxLayout,
-    QLabel,
-    QMainWindow,
-    QPushButton,
-    QStackedLayout,
-    QStatusBar,
-    QVBoxLayout,
-    QWidget
-)
+from pathlib import Path
+from rich.logging import RichHandler
+
+logging.basicConfig(level='NOTSET', format='%(message)s', datefmt='[%X]', handlers=[RichHandler(rich_tracebacks=True)])
+logger = logging.getLogger(__name__)
+
+logging.info(f'{VERSION_INFO} started')
+
+NO_ALBUM_MESSAGE = 'No albums defined'
+DEFAULT_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tif', '.tiff', '.webp', '.svg']
+MAX_ALBUMS = 36  # no mod, shift, alt, ctrl * 9 (on the numeric keypad)
+
+from PySide6.QtCore import *
+from PySide6.QtWidgets import *
 
 DEBUG = True
 
@@ -32,14 +43,17 @@ class LabelSetWidget(QFrame):
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title_label)
 
-        if len(buttons) < 9:
-            buttons.append('-' * (9 - len(buttons)))
-
         for button_text in buttons:
             button = QPushButton(button_text)
-        layout.addWidget(button)
+            layout.addWidget(button)
+
+        if len(buttons) < 9:
+            for _i in range(9 - len(buttons)):
+                button = QPushButton(NO_ALBUM_MESSAGE)
+                layout.addWidget(button)
 
         if DEBUG:
+            logger.debug(r'Adding frame')
             self.setFrameShape(self.Shape.Box)
             # pass
 
@@ -89,6 +103,19 @@ class MainWindow(QMainWindow):
         central_widget.setLayout(main_layout)
 
         self.setCentralWidget(central_widget)
+
+        self.keyPressEventFilter = KeyPressEventFilter(self)
+        self.installEventFilter(self.keyPressEventFilter)
+
+
+class KeyPressEventFilter(QObject):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.KeyPress:
+            logger.info(f'key_press: {event.key()}')
+        return False
 
 
 app = QApplication(sys.argv)
