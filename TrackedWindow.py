@@ -31,7 +31,7 @@ def print_event(event_title: EventTitle = None, vars_dict: dict = dict):
     print(f'{event_title}\n' + '\n'.join(f'\t{k}: {v}' for k, v in vars_dict.items()) + '\n')
 
 
-def _print_key_event(event: QKeyEvent):
+def _print_key_event(e: QKeyEvent):
     """
     Print a QKeyEvent to the console.
 
@@ -43,16 +43,16 @@ def _print_key_event(event: QKeyEvent):
         nativeModifiers: The native modifiers of the key that was pressed.
         autoRepeat: Whether the key is being auto-repeated.
     """
-    print_event(f':key: ({Qt.Key(event.key()).name})', {
-        'key': event.key(),
-        'text': event.text(),
-        'modifiers': event.modifiers(),
-        'nativeModifiers': event.nativeModifiers(),
-        'autoRepeat': event.isAutoRepeat(),
+    print_event(f':key: ({Qt.Key(e.key()).name})', {
+        'key': e.key(),
+        'text': e.text(),
+        'modifiers': e.modifiers(),
+        'nativeModifiers': e.nativeModifiers(),
+        'autoRepeat': e.isAutoRepeat(),
     })
 
 
-def _print_mouse_event(event: QMouseEvent):
+def _print_mouse_event(e: QMouseEvent):
     """
     Print a QMouseEvent to the console.
 
@@ -63,16 +63,16 @@ def _print_mouse_event(event: QMouseEvent):
         screenPos: The position of the mouse cursor relative to the screen.
         windowPos: The position of the mouse cursor relative to the window.
     """
-    print_event(f':mouse: ({event.button()})', {
-        'globalPos': event.globalPos(),
-        'localPos': event.localPos(),
-        'screenPos': event.screenPos(),
-        'windowPos': event.windowPos(),
+    print_event(f':mouse: ({e.button()})', {
+        'globalPos': e.globalPos(),
+        'localPos': e.localPos(),
+        'screenPos': e.screenPos(),
+        'windowPos': e.windowPos(),
     })
 
 
 class TrackedWindow(QMainWindow):
-    def keyPressEvent(self, event: QKeyEvent) -> QKeyEvent:
+    def keyPressEvent(self, e: QKeyEvent) -> QKeyEvent:
         """
         Print a QKeyEvent to the console and pass it through to the parent method.
 
@@ -86,10 +86,10 @@ class TrackedWindow(QMainWindow):
 
         The event is then passed through to the parent method.
         """
-        _print_key_event(event)
-        return event
+        _print_key_event(e)
+        return e
 
-    def mouseReleaseEvent(self, event: QMouseEvent) -> QMouseEvent:
+    def mouseReleaseEvent(self, e: QMouseEvent) -> QMouseEvent:
         """
         Print a QMouseEvent to the console and pass it through to the parent method.
 
@@ -102,8 +102,8 @@ class TrackedWindow(QMainWindow):
 
         The event is then passed through to the parent method.
         """
-        _print_mouse_event(event)
-        return event
+        _print_mouse_event(e)
+        return e
 
 
 __all__ = ['TrackedWindow', 'print_event']

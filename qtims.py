@@ -3,21 +3,19 @@
 PROGRAM_NAME = "ImageSack"
 PROGRAM_VERSION = "0.0.1rNone"
 PYTHON_VERSION = "3.9"
-VERSION_INFO = f"{PROGRAM_NAME} v{PROGRAM_VERSION} - {PYTHON_VERSION}"
+VERSION_INFO = f"{PROGRAM_NAME} v{PROGRAM_VERSION} -  Python {PYTHON_VERSION}"
 
 import argparse
-import logging
 import json
+import logging
 import os
-import sys
-
 from enum import Enum
 from pathlib import Path
-from rich.logging import RichHandler
 
 from PySide6.QtCore import *
-from PySide6.QtWidgets import *
 from PySide6.QtGui import *
+from PySide6.QtWidgets import *
+from rich.logging import RichHandler
 
 logging.basicConfig(
     level="NOTSET",
@@ -30,6 +28,7 @@ logger = logging.getLogger(__name__)
 logging.info(f"{VERSION_INFO} started")
 
 NO_ALBUM_MESSAGE = "No album defined"
+NO_ALBUM_BUTTON_TITLE = "-"
 DEFAULT_EXTENSIONS = [
     ".jpg",
     ".jpeg",
@@ -41,6 +40,7 @@ DEFAULT_EXTENSIONS = [
     ".webp",
     ".svg",
 ]
+MIN_ALBUMS = 9
 MAX_ALBUMS = 36  # no mod, shift, alt, ctrl * 9 (on the numeric keypad)
 
 
@@ -49,9 +49,12 @@ class FontSize(Enum):
     SUBTITLE = 20
     NORMAL = 16
     SMALL = 12
+    STATUS_BAR = 12
     TINY = 10
 
 
+QUICK_MESSAGE_TIMER = 3000
+MESSAGE_TIMER = QUICK_MESSAGE_TIMER * 2
 # QT swaps key names for modifiers on MacOS. This switches them back.
 MODIFIER_KEYS = ["", "Shift", "Ctrl", "Alt"]
 KEYPRESS_VALUES = [-1, 16777248, 16777250, 16777251]
@@ -59,11 +62,41 @@ DEBUG = True
 RIGHT_COLUMN_WIDTH = 384
 
 
+def is_album(p: Path) -> bool:
+    return os.path.isdir(p.expanduser())
+
+
+def is_not_dotted(p: Path) -> bool:
+    return p.name[0] != "."
+
+
+def move_item(source_file: Path, destination_folder: Path) -> None:
+    logger.info(f"Moving {source_file} to {destination_folder}")
+    source_file.rename(destination_folder / source_file.name)
+
+
+class StatusWidget(QWidget):
+    def __init__(self, working_directory: Path = "Testing/", parent=None):
+        super().__init__(parent)
+        layout = QHBoxLayout()
+
+        if working_directory is not None:
+            dir_label = QLabel(f"{working_directory}")
+            dir_label.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+            layout.addWidget(dir_label)
+
+        ver_label = QLabel(f"<b>{PROGRAM_NAME}</b> v{PROGRAM_VERSION}")
+        layout.addWidget(ver_label)
+
+        self.setLayout(layout)
+
+
 class LabelSetWidget(QFrame):
     def __init__(self, title: str, buttons=None, parent=None):
         super().__init__(parent)
         if buttons is None:
-            buttons = []
+            logger.critical("Buttons cannot be None in LabelSetWidget.__init__")
+            exit(1)
         layout = QVBoxLayout()
 
         title_label = QLabel(title)
@@ -85,7 +118,7 @@ class LabelSetWidget(QFrame):
 
         if len(buttons) < 9:
             for _i in range(9 - len(buttons)):
-                button = QPushButton(NO_ALBUM_MESSAGE)
+                button = QPushButton()
                 button.setDisabled(True)
                 # button = QPushButton(f"{key_counter}. Nope!")
                 button.setStyleSheet(f"font-size: {FontSize.NORMAL.value}px;")
@@ -96,12 +129,19 @@ class LabelSetWidget(QFrame):
         self.setLayout(layout)
 
 
-from TrackedWindow import *
-
-
 class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
+    def __init__(
+        self,
+        source_dir: Path,
+        album_dir: Path,
+        album_lst: list,
+        parent=None,
+    ):
+        logger.debug(f"MainWindow got source_dir: {source_dir}")
+        logger.debug(f"MainWindow got album_dir: {album_dir}")
+        logger.debug(f"MainWindow got album_lst: {album_lst}")
+
+        super().__init__(parent=parent)
 
         self.setWindowTitle("ImgSack")
 
@@ -119,9 +159,15 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(image_label)
 
         self.label_key_layout = QStackedLayout()
-        for modifier in MODIFIER_KEYS:
-            labels = LabelSetWidget(modifier)
-            self.label_key_layout.addWidget(labels)
+        # TODO: do this as an iterable?
+        labels_none = LabelSetWidget("", album_lst[0:9])
+        self.label_key_layout.addWidget(labels_none)
+        labels_shift = LabelSetWidget("Shift", album_lst[9:18])
+        self.label_key_layout.addWidget(labels_shift)
+        labels_ctrl = LabelSetWidget("Ctrl", album_lst[18:27])
+        self.label_key_layout.addWidget(labels_ctrl)
+        labels_alt = LabelSetWidget("Alt", album_lst[27:36])
+        self.label_key_layout.addWidget(labels_alt)
 
         utility_keys_layout = QHBoxLayout()
         skip_button_0 = QPushButton("0 - Skip")
@@ -153,6 +199,10 @@ class MainWindow(QMainWindow):
 
         self.setCentralWidget(central_widget)
 
+        self.statusBar().addPermanentWidget(StatusWidget())
+        self.statusBar().showMessage("Ready", QUICK_MESSAGE_TIMER)
+        self.show()
+
     def keyPressEvent(self, event: QKeyEvent) -> QKeyEvent:
         super().keyPressEvent(event)
         if event.key() in KEYPRESS_VALUES:
@@ -166,9 +216,84 @@ class MainWindow(QMainWindow):
         return event
 
 
-app = QApplication(sys.argv)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=f"{VERSION_INFO}")
+    parser.add_argument(
+        "-s", "--source", help="source directory for images", default="."
+    )
+    parser.add_argument(
+        "-a", "--albums", help="directory for album folders", default=None
+    )
+    parser.add_argument("-c", "--config", help="configuration file", default=None)
+    parser.add_argument(
+        "-e",
+        "--extensions",
+        help="list of image extensions",
+        default=DEFAULT_EXTENSIONS,
+    )
+    args = parser.parse_args()
 
-window = MainWindow()
-window.show()
+    if args.config is not None:
+        config_file = Path(args.config).expanduser().resolve()
+        if not config_file.exists():
+            logging.critical(f"Configuration file {args.config} does not exist")
+            exit(1)
+        config = json.loads(config_file.read_text())
+        source_directory = Path(config["source_directory"]).expanduser().resolve()
+        album_directory = Path(config["output_directory"]).expanduser().resolve()
+        albums = config["albums"]
+        logging.critical("Config - Not implemented yet")
+        exit(1)
+    else:
+        source_directory = Path(args.source).expanduser().resolve()
+        logger.debug(f"Source Directory: {source_directory}")
+        if not source_directory.exists():
+            logging.critical(f"Source directory {args.source} does not exist")
+            exit(1)
 
-app.exec()
+        if args.albums is None:
+            album_directory = source_directory
+        else:
+            album_directory = Path(args.albums).expanduser().resolve()
+            logger.debug(f"Album Directory: {album_directory}")
+            if not album_directory.exists():
+                logging.critical(f"Album directory {args.albums} does not exist")
+                exit(1)
+
+    album_list = []
+    for d in album_directory.iterdir():
+        logger.debug(f"{d} is_album: {is_album(d)} is_not_dotted: {is_not_dotted(d)}")
+        if is_album(d) and is_not_dotted(d):
+            album_list.append(d.name)
+
+    album_list.sort()
+
+    if len(album_list) < 1:
+        logging.critical(f"Album directory {album_directory} has no albums")
+        exit(1)
+    if len(album_list) < MIN_ALBUMS:
+        logging.info(
+            f"Album directory {album_directory} has {len(album_list)} albums - padding to {MIN_ALBUMS}"
+        )
+        album_list = album_list + [NO_ALBUM_BUTTON_TITLE] * (
+            MAX_ALBUMS - len(album_list)
+        )
+    if len(album_list) > MAX_ALBUMS:
+        logging.warning(
+            f"Album directory {album_directory} has too many albums - truncating to {MAX_ALBUMS}"
+        )
+        album_list = album_list[:MAX_ALBUMS]
+
+    item_list = [
+        Path(f).expanduser()
+        for f in source_directory.iterdir()
+        if Path(f).expanduser().suffix in DEFAULT_EXTENSIONS
+    ]
+    logger.info(f"{len(item_list)} items found in {source_directory}")
+
+    app = QApplication([])
+
+    window = MainWindow(source_directory, album_directory, album_list)
+    window.show()
+
+    app.exec()
